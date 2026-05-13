@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { MobileCameraPanel } from './components/MobileCameraPanel'
+import { LiveCamera3DView } from './components/LiveCamera3DView'
 import { PropertyViewer3D } from './components/PropertyViewer3D'
 import { SplatViewer3D } from './components/SplatViewer3D'
 import { ingestSplatFile } from './lib/splatPipeline'
@@ -27,7 +28,7 @@ function formatBrl(n: number): string {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 }
 
-type ViewerTab = 'demo' | 'splat'
+type ViewerTab = 'demo' | 'live' | 'splat'
 
 export default function App() {
   const [viewTab, setViewTab] = useState<ViewerTab>('demo')
@@ -136,8 +137,8 @@ export default function App() {
           <div className="panel-head">
             <h2>Ambiente 3D</h2>
             <p className="hint">
-              Separador <strong>demo</strong> usa primitivas no motor; <strong>Gaussian Splat</strong> usa o mesmo
-              motor com ficheiro processado por splat-transform.
+              <strong>Cena demo</strong> — primitivas; <strong>Câmera 3D</strong> — vídeo ao vivo como textura no
+              motor; <strong>Gaussian Splat</strong> — ficheiro + splat-transform.
             </p>
           </div>
 
@@ -154,6 +155,15 @@ export default function App() {
             <button
               type="button"
               role="tab"
+              aria-selected={viewTab === 'live'}
+              className={`viewer-tab ${viewTab === 'live' ? 'viewer-tab--active' : ''}`}
+              onClick={() => setViewTab('live')}
+            >
+              Câmera 3D tempo real
+            </button>
+            <button
+              type="button"
+              role="tab"
               aria-selected={viewTab === 'splat'}
               className={`viewer-tab ${viewTab === 'splat' ? 'viewer-tab--active' : ''}`}
               onClick={() => setViewTab('splat')}
@@ -162,7 +172,9 @@ export default function App() {
             </button>
           </div>
 
-          {viewTab === 'demo' ? <PropertyViewer3D /> : <SplatViewer3D key={splatViewUrl ?? 'empty'} splatUrl={splatViewUrl} />}
+          {viewTab === 'demo' ? <PropertyViewer3D /> : null}
+          {viewTab === 'live' ? <LiveCamera3DView /> : null}
+          {viewTab === 'splat' ? <SplatViewer3D key={splatViewUrl ?? 'empty'} splatUrl={splatViewUrl} /> : null}
 
           <div className="splat-toolbar">
             <label className="splat-file-label">
