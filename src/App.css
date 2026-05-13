@@ -1,0 +1,378 @@
+.app {
+  text-align: left;
+  padding: 1.5rem clamp(1rem, 3vw, 2rem) 2.5rem;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.app-header h1 {
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.03em;
+}
+
+.tagline {
+  margin: 0;
+  max-width: 52ch;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.pill {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+  align-self: center;
+}
+
+.pill-on {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
+
+.pill-off {
+  opacity: 0.95;
+}
+
+.grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: 1.15fr 0.85fr;
+  grid-template-areas:
+    'viewer form'
+    'viewer result';
+}
+
+@media (max-width: 960px) {
+  .grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'viewer'
+      'form'
+      'result';
+  }
+}
+
+.panel {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg) 92%, var(--border));
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.panel-3d {
+  grid-area: viewer;
+}
+
+.panel-form {
+  grid-area: form;
+}
+
+.panel-result {
+  grid-area: result;
+}
+
+.panel-head {
+  padding: 0.85rem 1rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-head h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.viewer-3d {
+  flex: 1;
+  min-height: 320px;
+  height: clamp(320px, 48vh, 520px);
+  background: #0f1115;
+}
+
+.viewer-3d canvas.pc-app {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.form {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--text-h);
+}
+
+.form input,
+.form select,
+.form textarea {
+  font: inherit;
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.form textarea {
+  resize: vertical;
+  min-height: 4.5rem;
+}
+
+.row-2,
+.row-3 {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.row-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.row-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 520px) {
+  .row-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.btn-primary {
+  margin-top: 0.25rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+}
+
+.btn-primary:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.error {
+  margin: 0;
+  color: #dc2626;
+  font-size: 0.9rem;
+}
+
+.cam-panel {
+  padding: 0 1rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.cam-panel-head h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.98rem;
+  color: var(--text-h);
+}
+
+.cam-preview-wrap {
+  position: relative;
+  margin-top: 0.5rem;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0a0a0c;
+  min-height: 200px;
+}
+
+.cam-video {
+  display: block;
+  width: 100%;
+  min-height: 200px;
+  object-fit: cover;
+  vertical-align: middle;
+}
+
+.cam-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: #9ca3af;
+  background: rgba(15, 17, 21, 0.92);
+  pointer-events: none;
+}
+
+.cam-canvas-hidden {
+  display: none;
+}
+
+.cam-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+  align-items: center;
+}
+
+.btn-secondary {
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.btn-secondary.btn-active {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.btn-ghost {
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.cam-loading {
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.cam-thumb-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0.65rem;
+}
+
+.cam-thumb {
+  width: 120px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.cam-msg {
+  margin: 0.5rem 0 0;
+  font-size: 0.86rem;
+  color: var(--text-h);
+}
+
+.cam-qr-help {
+  margin-top: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+.cam-qr-help summary {
+  cursor: pointer;
+  color: var(--text-h);
+}
+
+.cam-qr-sample {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  background: var(--code-bg);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  overflow-x: auto;
+  text-align: left;
+}
+
+.placeholder {
+  margin: 0;
+  padding: 1rem;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.result {
+  padding: 1rem;
+}
+
+.result-source {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+.result-big {
+  margin: 0;
+  font-size: clamp(1.6rem, 4vw, 2rem);
+  font-weight: 700;
+  color: var(--text-h);
+  letter-spacing: -0.02em;
+}
+
+.result-range {
+  margin: 0.35rem 0 0.75rem;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.result-summary {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--text-h);
+}
+
+.result-factors {
+  margin: 0.75rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.footer code {
+  font-size: 0.85em;
+}
