@@ -1,9 +1,15 @@
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { MobileCameraPanel } from './components/MobileCameraPanel'
 import { PropertyViewer3D } from './components/PropertyViewer3D'
+import { SplatViewer3D } from './components/SplatViewer3D'
+import { ingestSplatFile } from './lib/splatPipeline'
 import { evaluateProperty } from './lib/valuation'
 import type { PropertyCondition, PropertyFormData, ValuationResult } from './types/property'
 import './App.css'
+
+const SupersplatPackFrame = lazy(() =>
+  import('./components/SupersplatPackFrame').then((m) => ({ default: m.SupersplatPackFrame })),
+)
 
 const defaultForm: PropertyFormData = {
   city: 'São Paulo',
@@ -21,22 +27,79 @@ function formatBrl(n: number): string {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 }
 
+type ViewerTab = 'demo' | 'splat'
+
 export default function App() {
+  const [viewTab, setViewTab] = useState<ViewerTab>('demo')
   const [form, setForm] = useState<PropertyFormData>(defaultForm)
   const [roomPhotoBase64, setRoomPhotoBase64] = useState<string | null>(null)
+  const [roomScan3dFrames, setRoomScan3dFrames] = useState<string[] | null>(null)
+
+  const [splatViewUrl, setSplatViewUrl] = useState<string | null>(null)
+  const [splatPromptBlock, setSplatPromptBlock] = useState<string | null>(null)
+  const [splatRowCount, setSplatRowCount] = useState<number | null>(null)
+  const [splatBusy, setSplatBusy] = useState(false)
+
+  const splatUrlRef = useRef<string | null>(null)
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<ValuationResult | null>(null)
 
   const hasAiKey = useMemo(() => Boolean((import.meta.env.VITE_OPENAI_API_KEY as string | undefined)?.trim()), [])
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  useEffect(() => {
+    return () => {
+      if (splatUrlRef.current) {
+        URL.revokeObjectURL(splatUrlRef.current)
+        splatUrlRef.current = null
+      }
+    }
+  }, [])
+
+  function clearSplatAsset() {
+    if (splatUrlRef.current) {
+      URL.revokeObjectURL(splatUrlRef.current)
+      splatUrlRef.current = null
+    }
+    setSplatViewUrl(null)
+    setSplatPromptBlock(null)
+    setSplatRowCount(null)
+  }
+
+  async function onSplatFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setSplatBusy(true)
+    setError(null)
+    try {
+      if (splatUrlRef.current) {
+        URL.revokeObjectURL(splatUrlRef.current)
+      }
+      const r = await ingestSplatFile(file)
+      splatUrlRef.current = r.viewUrl
+      setSplatViewUrl(r.viewUrl)
+      setSplatPromptBlock(r.promptBlock)
+      setSplatRowCount(r.summary.rowCount)
+      setViewTab('splat')
+    } catch (err) {
+      clearSplatAsset()
+      setError(err instanceof Error ? err.message : 'Falha ao processar o splat.')
+    } finally {
+      setSplatBusy(false)
+    }
+  }
+
+  async function handleSubmit(submitEvent: React.FormEvent) {
+    submitEvent.preventDefault()
     setLoading(true)
     setError(null)
     try {
       const valuation = await evaluateProperty(form, {
         roomPhotoBase64: roomPhotoBase64 ?? undefined,
+        roomScanFramesBase64: roomScan3dFrames ?? undefined,
+        splatTransformContext: splatPromptBlock ?? undefined,
       })
       setResult(valuation)
     } catch (err) {
@@ -46,14 +109,21 @@ export default function App() {
     }
   }
 
+  const visionBits = [
+    result?.usedMultiFrameScan && 'passeio multi-vista',
+    result?.usedRoomPhoto && 'foto única',
+    result?.usedSplatTransform && 'splat-transform',
+  ].filter(Boolean)
+
   return (
     <div className="app">
       <header className="app-header">
         <div>
           <h1>AvaliaEngine</h1>
           <p className="tagline">
-            Visualize um ambiente em 3D com PlayCanvas, use a câmera para QR ou foto do ambiente, e obtenha faixa de
-            valor com IA (OpenAI) ou estimativa local.
+            Ecossistema PlayCanvas no browser: motor 3D + React, processamento com{' '}
+            <code>@playcanvas/splat-transform</code>, visualização GSplat, passeio com a câmera e envio para a IA
+            (OpenAI). O editor completo do PlayCanvas continua a ser uma aplicação à parte.
           </p>
         </div>
         <span className={`pill ${hasAiKey ? 'pill-on' : 'pill-off'}`}>
@@ -65,9 +135,111 @@ export default function App() {
         <section className="panel panel-3d" aria-label="Visualização 3D">
           <div className="panel-head">
             <h2>Ambiente 3D</h2>
-            <p className="hint">Arraste para orbitar, role para aproximar.</p>
+            <p className="hint">
+              Separador <strong>demo</strong> usa primitivas no motor; <strong>Gaussian Splat</strong> usa o mesmo
+              motor com ficheiro processado por splat-transform.
+            </p>
           </div>
-          <PropertyViewer3D />
+
+          <div className="viewer-tabs" role="tablist" aria-label="Modo de visualização">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewTab === 'demo'}
+              className={`viewer-tab ${viewTab === 'demo' ? 'viewer-tab--active' : ''}`}
+              onClick={() => setViewTab('demo')}
+            >
+              Cena demo
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewTab === 'splat'}
+              className={`viewer-tab ${viewTab === 'splat' ? 'viewer-tab--active' : ''}`}
+              onClick={() => setViewTab('splat')}
+            >
+              Gaussian Splat
+            </button>
+          </div>
+
+          {viewTab === 'demo' ? <PropertyViewer3D /> : <SplatViewer3D key={splatViewUrl ?? 'empty'} splatUrl={splatViewUrl} />}
+
+          <div className="splat-toolbar">
+            <label className="splat-file-label">
+              <span>{splatBusy ? 'A processar splat…' : 'Carregar scan (.ply, .sog, .spz, …)'}</span>
+              <input
+                type="file"
+                accept=".ply,.sog,.spz,.splat,.ksplat,.lcc"
+                disabled={splatBusy}
+                onChange={onSplatFile}
+              />
+            </label>
+            {splatRowCount != null ? (
+              <p className="hint splat-meta">
+                {splatRowCount.toLocaleString('pt-BR')} gaussianas · resumo <code>splat-transform</code> incluído no
+                pedido à IA.
+              </p>
+            ) : null}
+            {splatViewUrl ? (
+              <button type="button" className="btn-ghost splat-clear" onClick={clearSplatAsset}>
+                Remover ficheiro splat
+              </button>
+            ) : null}
+          </div>
+
+          <details className="ecosystem-details">
+            <summary>Viewer empacotado SuperSplat (npm) + ligações do ecossistema</summary>
+            <p className="hint">
+              O pacote <code>@playcanvas/supersplat-viewer</code> expõe o HTML/CSS/JS usado em{' '}
+              <a href="https://superspl.at" target="_blank" rel="noreferrer">
+                superspl.at
+              </a>
+              . Abaixo carrega-se esse pacote <strong>só se abrir esta secção</strong> (ficheiro grande).
+            </p>
+            <ul className="ecosystem-links">
+              <li>
+                <a href="https://github.com/playcanvas/engine" target="_blank" rel="noreferrer">
+                  playcanvas/engine
+                </a>{' '}
+                — motor WebGL/WebGPU
+              </li>
+              <li>
+                <a href="https://github.com/playcanvas/react" target="_blank" rel="noreferrer">
+                  playcanvas/react
+                </a>{' '}
+                — integração React
+              </li>
+              <li>
+                <a href="https://github.com/playcanvas/supersplat" target="_blank" rel="noreferrer">
+                  playcanvas/supersplat
+                </a>{' '}
+                — editor de splats (exporte .ply/.sog para carregar aqui)
+              </li>
+              <li>
+                <a href="https://github.com/playcanvas/splat-transform" target="_blank" rel="noreferrer">
+                  playcanvas/splat-transform
+                </a>{' '}
+                — leitura e estatísticas usadas nesta app
+              </li>
+              <li>
+                <a href="https://github.com/playcanvas/editor" target="_blank" rel="noreferrer">
+                  playcanvas/editor
+                </a>{' '}
+                — editor visual no browser (projeto separado)
+              </li>
+              <li>
+                <a href="https://github.com/playcanvas/pcui" target="_blank" rel="noreferrer">
+                  playcanvas/pcui
+                </a>{' '}
+                — UI usada em ferramentas como o SuperSplat
+              </li>
+            </ul>
+            <div className="pack-frame-host">
+              <Suspense fallback={<p className="hint">A preparar viewer empacotado…</p>}>
+                <SupersplatPackFrame />
+              </Suspense>
+            </div>
+          </details>
         </section>
 
         <section className="panel panel-form" aria-label="Dados do imóvel">
@@ -81,6 +253,8 @@ export default function App() {
             onFormChange={setForm}
             photoBase64={roomPhotoBase64}
             onPhotoChange={setRoomPhotoBase64}
+            scan3dFrames={roomScan3dFrames}
+            onScan3dFramesChange={setRoomScan3dFrames}
           />
 
           <form className="form" onSubmit={handleSubmit}>
@@ -203,7 +377,7 @@ export default function App() {
             <div className="result">
               <p className="result-source">
                 Fonte: {result.source === 'openai' ? 'modelo OpenAI (gpt-4o-mini)' : 'estimativa heurística no navegador'}
-                {result.usedRoomPhoto ? ' · Foto do ambiente enviada na avaliação' : ''}
+                {visionBits.length > 0 ? ` · ${visionBits.join(', ')}` : ''}
               </p>
               <p className="result-big">{formatBrl(result.estimated)}</p>
               <p className="result-range">

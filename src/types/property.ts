@@ -22,9 +22,17 @@ export interface ValuationResult {
   factors: string[]
   /** Foto do ambiente enviada à API (visão), quando aplicável */
   usedRoomPhoto?: boolean
+  /** Várias vistas (passeio pela câmera) enviadas à API */
+  usedMultiFrameScan?: boolean
+  /** Resumo estatístico de splat (@playcanvas/splat-transform) enviado ao texto da IA */
+  usedSplatTransform?: boolean
 }
 
 export type EvaluatePropertyOptions = {
   /** JPEG em base64 (sem prefixo data:) para modelo com visão */
   roomPhotoBase64?: string
+  /** Sequência de JPEGs (passeio 3D leve): ordem = caminhada aproximada pelo ambiente */
+  roomScanFramesBase64?: string[]
+  /** Bloco JSON/texto com estatísticas do splat (splat-transform → computeSummary) */
+  splatTransformContext?: string
 }

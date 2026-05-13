@@ -49,9 +49,19 @@ export function heuristicValuation(data: PropertyFormData, options?: EvaluatePro
     `Ponderação por quartos, banheiros e vagas`,
     `Estado: ${data.condition}; idade do imóvel: ${data.buildingAgeYears} anos`,
   ]
-  if (options?.roomPhotoBase64) {
+  const scanN = options?.roomScanFramesBase64?.length ?? 0
+  if (scanN > 0) {
+    factors.push(
+      `Passeio 3D (${scanN} vista(s)): o modo local não reconstrói nem interpreta o espaço em 3D; configure a chave OpenAI para a IA analisar as imagens.`,
+    )
+  } else if (options?.roomPhotoBase64) {
     factors.push(
       'Foto do ambiente anexada: o modo local não interpreta imagens; configure a chave OpenAI para análise visual na avaliação.',
+    )
+  }
+  if (options?.splatTransformContext?.trim()) {
+    factors.push(
+      'Dados de Gaussian Splat (splat-transform) presentes: o modo local não usa o resumo na fórmula; configure a chave OpenAI para integrar na avaliação.',
     )
   }
 
@@ -62,11 +72,15 @@ export function heuristicValuation(data: PropertyFormData, options?: EvaluatePro
     min,
     max,
     usedRoomPhoto: Boolean(options?.roomPhotoBase64),
+    usedMultiFrameScan: scanN >= 3,
+    usedSplatTransform: Boolean(options?.splatTransformContext?.trim()),
     summary:
       'Estimativa rápida baseada em metro quadrado médio por perfil de cidade, idade, estado de conservação e composição do imóvel. Não substitui laudo ou estudo de mercado.',
     factors,
   }
 }
+
+const MAX_VISION_IMAGES = 10
 
 function parseJsonFromAssistant(content: string): Partial<ValuationResult> | null {
   const start = content.indexOf('{')
@@ -84,7 +98,15 @@ export async function evaluateProperty(
   options?: EvaluatePropertyOptions,
 ): Promise<ValuationResult> {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined
-  const hasPhoto = Boolean(options?.roomPhotoBase64?.trim())
+  const scanFrames = (options?.roomScanFramesBase64 ?? []).filter((s) => s && s.length > 32)
+  const singlePhoto = options?.roomPhotoBase64?.trim()
+  const visionImages: string[] = []
+  if (scanFrames.length > 0) {
+    visionImages.push(...scanFrames.slice(0, MAX_VISION_IMAGES))
+  } else if (singlePhoto) {
+    visionImages.push(singlePhoto)
+  }
+  const hasMultiScan = scanFrames.length >= 3
 
   if (!apiKey?.trim()) {
     return heuristicValuation(data, options)
@@ -93,7 +115,21 @@ export async function evaluateProperty(
   const system = `Você é um analista imobiliário brasileiro. Responda APENAS um JSON válido com as chaves:
 {"currency":"BRL","estimated":number,"min":number,"max":number,"summary":"string curta em pt-BR","factors":["bullet1","bullet2","bullet3"]}
 Valores em reais inteiros, coerentes com o mercado brasileiro. Se faltar dado, assuma valores medianos e declare na summary.
-Se receber foto de ambiente interno, use-a só como indício de acabamento, conservação aparente e padrão — não infira metragem legal a partir da imagem.`
+Se receber uma ou mais fotos de ambiente interno, use-as só como indício de acabamento, conservação aparente, iluminação e padrão — não infira metragem legal nem planta a partir das imagens.
+Se receber várias imagens em sequência, trate-as como um passeio aproximado pelo espaço (não é modelo 3D métrico nem nuvem de pontos); integre as vistas para inferir continuidade do ambiente e qualidade percebida, com ressalvas na summary.
+Se receber um bloco JSON de estatísticas de Gaussian Splat (ferramenta splat-transform: contagem de gaussianas, min/máx/média por canal), use-o como indício de complexidade da cena e riqueza de detalhe — não converta isso em metragem legal.`
+
+  const visionNote =
+    scanFrames.length > 0
+      ? `Seguem ${visionImages.length} imagem(ns) JPEG em ordem cronológica de um passeio pela câmera (amostragem leve do ambiente, não é escaneamento 3D cadastral).`
+      : singlePhoto
+        ? 'Segue uma foto JPEG do ambiente real.'
+        : ''
+
+  const splatCtx = options?.splatTransformContext?.trim()
+  const splatNote = splatCtx
+    ? `Estatísticas do Gaussian Splat (processamento @playcanvas/splat-transform, computeSummary):\n${splatCtx}`
+    : ''
 
   const userText = `Dados do imóvel:
 - Cidade: ${data.city}
@@ -104,17 +140,18 @@ Se receber foto de ambiente interno, use-a só como indício de acabamento, cons
 - Estado (formulário): ${data.condition}
 - Observações: ${data.notes || 'nenhuma'}
 Contexto 3D: o usuário pode ter visualizado um ambiente simplificado no app (primitivas), não é planta oficial.
-${hasPhoto ? 'Segue também uma foto JPEG capturada pelo usuário no local (ambiente real).' : ''}`
+${visionNote}
+${splatNote}`
 
   type ContentPart =
     | { type: 'text'; text: string }
     | { type: 'image_url'; image_url: { url: string } }
 
   const userContent: ContentPart[] = [{ type: 'text', text: userText }]
-  if (hasPhoto && options?.roomPhotoBase64) {
+  for (const b64 of visionImages) {
     userContent.push({
       type: 'image_url',
-      image_url: { url: `data:image/jpeg;base64,${options.roomPhotoBase64}` },
+      image_url: { url: `data:image/jpeg;base64,${b64}` },
     })
   }
 
@@ -159,6 +196,8 @@ ${hasPhoto ? 'Segue também uma foto JPEG capturada pelo usuário no local (ambi
     max: Math.round(Number(parsed.max)),
     summary: parsed.summary ?? 'Avaliação gerada por modelo de linguagem.',
     factors: Array.isArray(parsed.factors) ? parsed.factors.map(String) : [],
-    usedRoomPhoto: hasPhoto,
+    usedRoomPhoto: Boolean(singlePhoto && scanFrames.length === 0),
+    usedMultiFrameScan: hasMultiScan && scanFrames.length > 0,
+    usedSplatTransform: Boolean(splatCtx),
   }
 }

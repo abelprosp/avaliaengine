@@ -104,6 +104,139 @@
   color: var(--text);
 }
 
+.viewer-tabs {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.viewer-tab {
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.viewer-tab--active {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.viewer-3d--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.viewer-empty-msg {
+  margin: 0;
+  padding: 1.25rem;
+  max-width: 42ch;
+  text-align: center;
+  font-size: 0.92rem;
+  color: #9ca3af;
+  line-height: 1.45;
+}
+
+.viewer-3d--splat {
+  position: relative;
+}
+
+.viewer-error-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.82rem;
+  background: rgba(127, 29, 29, 0.92);
+  color: #fecaca;
+  text-align: center;
+}
+
+.splat-toolbar {
+  padding: 0.65rem 0.75rem 0.75rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.splat-file-label {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.splat-file-label input[type='file'] {
+  font-size: 0.8rem;
+  max-width: 100%;
+}
+
+.splat-meta {
+  margin: 0;
+}
+
+.splat-clear {
+  align-self: flex-start;
+}
+
+.ecosystem-details {
+  margin: 0 0.75rem 0.75rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.ecosystem-details summary {
+  cursor: pointer;
+  color: var(--text-h);
+}
+
+.ecosystem-links {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+  text-align: left;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.pack-frame-host {
+  margin-top: 0.65rem;
+  min-height: 200px;
+}
+
+.pack-frame-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.pack-frame-hint {
+  margin: 0;
+}
+
+.pack-frame {
+  width: 100%;
+  min-height: 360px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #0a0a0c;
+}
+
 .viewer-3d {
   flex: 1;
   min-height: 320px;
@@ -202,6 +335,11 @@
   color: var(--text-h);
 }
 
+.btn-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .cam-preview-wrap {
   position: relative;
   margin-top: 0.5rem;
@@ -209,6 +347,47 @@
   overflow: hidden;
   background: #0a0a0c;
   min-height: 200px;
+}
+
+.cam-scan-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: #f9fafb;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+  text-align: center;
+}
+
+.cam-scan-strip-wrap {
+  padding: 0.65rem 1rem 0.25rem;
+  border-top: 1px dashed var(--border);
+}
+
+.cam-scan-strip-label {
+  margin: 0 0 0.4rem;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+.cam-scan-strip {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.cam-scan-thumb {
+  width: 72px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
 }
 
 .cam-video {
