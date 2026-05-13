@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import { Application, Entity } from '@playcanvas/react'
 import { Camera, GSplat, Light } from '@playcanvas/react/components'
 import { useSplat } from '@playcanvas/react/hooks'
